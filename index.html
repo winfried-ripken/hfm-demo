@@ -42,6 +42,10 @@
     .pill { font-size: 11px; color: var(--muted); }
     .pill b { color: var(--fg); }
     hr { border: none; border-top: 1px solid #232a3d; margin: 2px 0; }
+    .rama-title { font-size: 13px; margin-bottom: 8px; }
+    .rama-title .muted { color: var(--muted); font-size: 11px; }
+    .rama-canvas { position: relative; width: 260px; height: 260px; margin: 0 auto; }
+    .rama-canvas canvas { position: absolute; top: 0; left: 0; }
   </style>
 </head>
 <body>
@@ -62,7 +66,7 @@
 
     <div class="control">
       <label>Integration timestep <b id="dtVal">5.0 fs</b></label>
-      <input type="range" id="dt" min="0.5" max="20" step="0.5" value="5" />
+      <input type="range" id="dt" min="0.5" max="18" step="0.5" value="5" />
     </div>
 
     <div class="control">
@@ -70,9 +74,14 @@
       <input type="range" id="temp" min="0" max="1000" step="10" value="500" />
     </div>
 
-    <div class="control">
-      <label>Steps / frame <b id="speedVal">1×</b></label>
-      <input type="range" id="speed" min="1" max="10" step="1" value="1" />
+    <hr />
+
+    <div class="rama">
+      <div class="rama-title">Ramachandran (φ–ψ) <span class="muted">live</span></div>
+      <div class="rama-canvas">
+        <canvas id="ramaCloud" width="260" height="260"></canvas>
+        <canvas id="ramaDot" width="260" height="260"></canvas>
+      </div>
     </div>
 
     <hr />

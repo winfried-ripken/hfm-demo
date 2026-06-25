@@ -1,4 +1,5 @@
 import { loadModel } from "./model.js";
+import { createRamachandran } from "./ramachandran.js";
 import {
   simulationStep,
   makeRng,
@@ -7,6 +8,7 @@ import {
   stationary,
   removeGlobalRotation3d,
   forceTemperature,
+  dihedralDeg,
 } from "./sim.js";
 
 const ELEMENTS = { 1: "H", 6: "C", 7: "N", 8: "O", 9: "F", 15: "P", 16: "S" };
@@ -20,8 +22,6 @@ const els = {
   dtVal: document.getElementById("dtVal"),
   temp: document.getElementById("temp"),
   tempVal: document.getElementById("tempVal"),
-  speed: document.getElementById("speed"),
-  speedVal: document.getElementById("speedVal"),
   stepCount: document.getElementById("stepCount"),
   curTemp: document.getElementById("curTemp"),
   sps: document.getElementById("sps"),
@@ -36,6 +36,14 @@ let rngState = null;
 let running = false;
 let stepIdx = 0;
 let params = null;
+let rama = null;
+let dihedrals = null; // { phi: [i,j,k,l], psi: [i,j,k,l] }
+
+// compute current (phi, psi) in degrees from positions
+function currentPhiPsi(x) {
+  const d = (idx) => dihedralDeg(x[idx[0]], x[idx[1]], x[idx[2]], x[idx[3]]);
+  return { phi: d(dihedrals.phi), psi: d(dihedrals.psi) };
+}
 
 // --- rolling steps-per-second meter ---
 let spsWindow = [];
@@ -82,6 +90,9 @@ function resetState() {
   stepIdx = 0;
   spsWindow = [];
   els.stepCount.textContent = "0";
+  rama.reset();
+  const { phi, psi } = currentPhiPsi(state.x);
+  rama.showCurrent(phi, psi); // mark the starting conformation
   renderMolecule(state.x);
   updateReadouts();
 }
@@ -96,27 +107,29 @@ function syncParams() {
   params.temperatureK = parseFloat(els.temp.value);
   els.dtVal.textContent = `${params.dtFs.toFixed(1)} fs`;
   els.tempVal.textContent = `${params.temperatureK.toFixed(0)} K`;
-  els.speedVal.textContent = `${els.speed.value}×`;
 }
 
 async function loop() {
   if (!running) return;
-  const stepsPerFrame = parseInt(els.speed.value, 10);
   const t0 = performance.now();
-  for (let s = 0; s < stepsPerFrame; s++) {
-    params.gauss = rngState.gauss;
-    params.rand = rngState.rand;
-    params.model = model;
-    const next = await simulationStep(state, params);
-    state = { x: next.x, p: next.p };
-    stepIdx++;
-  }
+  params.gauss = rngState.gauss;
+  params.rand = rngState.rand;
+  params.model = model;
+  const next = await simulationStep(state, params);
+  state = { x: next.x, p: next.p };
+  stepIdx++;
+
   const dtMs = performance.now() - t0;
-  spsWindow.push({ n: stepsPerFrame, ms: dtMs });
-  if (spsWindow.length > 20) spsWindow.shift();
+  spsWindow.push({ n: 1, ms: dtMs });
+  if (spsWindow.length > 30) spsWindow.shift();
   const totN = spsWindow.reduce((a, b) => a + b.n, 0);
   const totMs = spsWindow.reduce((a, b) => a + b.ms, 0);
   els.sps.textContent = `${(1000 * totN / totMs).toFixed(0)} steps/s`;
+
+  // accumulate this state into the Ramachandran cloud + mark current position
+  const { phi, psi } = currentPhiPsi(state.x);
+  rama.addPoint(phi, psi);
+  rama.showCurrent(phi, psi);
 
   els.stepCount.textContent = stepIdx.toString();
   renderMolecule(state.x);
@@ -142,6 +155,14 @@ async function boot() {
     temperatureK: init.default_temperature_K,
   };
 
+  // dihedral atom indices (from configs/data_module/md17_paracetamol.yaml)
+  const di = init.dihedral_atom_indices || [[6, 7, 8, 17], [1, 3, 4, 5]];
+  dihedrals = { phi: di[0], psi: di[1] };
+  rama = createRamachandran(
+    document.getElementById("ramaCloud"),
+    document.getElementById("ramaDot")
+  );
+
   // viewer
   viewer = window.$3Dmol.createViewer(document.getElementById("viewer"), {
     backgroundColor: "0x10141c",
@@ -164,7 +185,6 @@ async function boot() {
   // wire up controls
   els.dt.addEventListener("input", syncParams);
   els.temp.addEventListener("input", syncParams);
-  els.speed.addEventListener("input", syncParams);
   els.playBtn.addEventListener("click", () => setRunning(!running));
   els.resetBtn.addEventListener("click", () => {
     const wasRunning = running;

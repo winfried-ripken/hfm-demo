@@ -41,6 +41,26 @@ function solve3(A, b) {
   return [det(col(A, 0, b)) / D, det(col(A, 1, b)) / D, det(col(A, 2, b)) / D];
 }
 
+// Dihedral (torsion) angle in degrees between four points p1-p2-p3-p4.
+// Port of hfm.simulation.utils.compute_dihedral.
+export function dihedralDeg(p1, p2, p3, p4) {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const norm = (v) => Math.hypot(v[0], v[1], v[2]);
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const b1 = sub(p2, p1);
+  const b2 = sub(p3, p2);
+  const b3 = sub(p4, p3);
+  let n1 = cross(b1, b2);
+  let n2 = cross(b2, b3);
+  const nn1 = norm(n1) || 1, nn2 = norm(n2) || 1, nb2 = norm(b2) || 1;
+  n1 = n1.map((c) => c / nn1);
+  n2 = n2.map((c) => c / nn2);
+  const b2n = b2.map((c) => c / nb2);
+  const x = dot(n1, n2);
+  const y = dot(cross(n1, n2), b2n);
+  return (Math.atan2(y, x) * 180) / Math.PI;
+}
+
 // ---------------------------------------------------------------------------
 // thermodynamic quantities
 // ---------------------------------------------------------------------------

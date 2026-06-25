@@ -228,6 +228,24 @@
       19
     ]
   ],
+  "dihedral_atom_indices": [
+    [
+      6,
+      7,
+      8,
+      17
+    ],
+    [
+      1,
+      3,
+      4,
+      5
+    ]
+  ],
+  "dihedral_angle_names": [
+    "phi",
+    "psi"
+  ],
   "fs_in_ase_units": 0.09822694788464063,
   "default_timestep_fs": 5.0,
   "default_temperature_K": 500.0
