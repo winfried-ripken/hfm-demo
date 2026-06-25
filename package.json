@@ -1,0 +1,14 @@
+{
+  "name": "hfm-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Client-side interactive molecular dynamics for paracetamol using the HFM mean-flow model (ONNX). Runs entirely in the browser.",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "test:e2e": "node export/test_e2e.mjs"
+  },
+  "devDependencies": {
+    "onnxruntime-node": "^1.27.0"
+  }
+}

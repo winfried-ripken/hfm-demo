@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paracetamol — Interactive MD (client-side HFM)</title>
+  <!-- onnxruntime-web + 3Dmol from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+  <script>
+    // tell ORT where to fetch its wasm binaries
+    window.ort.env.wasm.wasmPaths =
+      "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+  </script>
+  <style>
+    :root { --bg:#10141c; --panel:#1a2030; --fg:#e6ebf5; --muted:#8b94a8; --accent:#5b9dff; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--fg); height: 100vh; display: flex;
+    }
+    #viewer { position: relative; flex: 1; min-width: 0; }
+    #panel {
+      width: 320px; background: var(--panel); padding: 20px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 18px; border-left: 1px solid #232a3d;
+    }
+    h1 { font-size: 17px; margin: 0 0 2px; }
+    .sub { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .control label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .control label b { color: var(--accent); font-variant-numeric: tabular-nums; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .buttons { display: flex; gap: 10px; }
+    button {
+      flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; background: var(--accent); color: #061322;
+    }
+    button.secondary { background: #2b3349; color: var(--fg); }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { background: #131826; border-radius: 8px; padding: 10px 12px; }
+    .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .stat .v { font-size: 18px; font-variant-numeric: tabular-nums; }
+    .pill { font-size: 11px; color: var(--muted); }
+    .pill b { color: var(--fg); }
+    hr { border: none; border-top: 1px solid #232a3d; margin: 2px 0; }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+  <div id="panel">
+    <div>
+      <h1>Paracetamol — Interactive MD</h1>
+      <div class="sub">
+        A diffusion-transformer mean-flow model integrates the dynamics entirely
+        in your browser — no server GPU. Drag the timestep slider while it runs.
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="playBtn">▶ Play</button>
+      <button id="resetBtn" class="secondary">↺ Reset</button>
+    </div>
+
+    <div class="control">
+      <label>Integration timestep <b id="dtVal">5.0 fs</b></label>
+      <input type="range" id="dt" min="0.5" max="20" step="0.5" value="5" />
+    </div>
+
+    <div class="control">
+      <label>Temperature <b id="tempVal">500 K</b></label>
+      <input type="range" id="temp" min="0" max="1000" step="10" value="500" />
+    </div>
+
+    <div class="control">
+      <label>Steps / frame <b id="speedVal">1×</b></label>
+      <input type="range" id="speed" min="1" max="10" step="1" value="1" />
+    </div>
+
+    <hr />
+
+    <div class="stats">
+      <div class="stat"><div class="k">Step</div><div class="v" id="stepCount">0</div></div>
+      <div class="stat"><div class="k">Temp (inst.)</div><div class="v" id="curTemp">– K</div></div>
+      <div class="stat"><div class="k">Throughput</div><div class="v" id="sps">– steps/s</div></div>
+      <div class="stat"><div class="k">Backend</div><div class="v" id="backend">–</div></div>
+    </div>
+
+    <div class="pill">Status: <b id="status">Booting…</b></div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
