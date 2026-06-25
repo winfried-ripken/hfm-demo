@@ -3,7 +3,7 @@
 
     python serve_webapp.py [port]
 
-Then open http://localhost:8000/ . Serves from the `webapp/` directory with the
+Then open http://localhost:8000/ . Serves from the root directory with the
 right MIME types for ES modules and the .onnx model.
 """
 import sys
