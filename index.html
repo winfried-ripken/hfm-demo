@@ -29,6 +29,26 @@
     .control label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
     .control label b { color: var(--accent); font-variant-numeric: tabular-nums; }
     input[type=range] { width: 100%; accent-color: var(--accent); }
+    /* Temperature slider: cool→hot gradient track */
+    #temp {
+      -webkit-appearance: none; appearance: none;
+      height: 8px; border-radius: 999px; outline: none;
+      background: linear-gradient(to right, #3b82f6 0%, #8b5cf6 40%, #f59e0b 72%, #ef4444 100%);
+    }
+    #temp::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+      background: var(--fg); border: 2px solid #061322;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.45);
+    }
+    #temp::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+      background: var(--fg); border: 2px solid #061322;
+    }
+    #temp::-moz-range-track {
+      height: 8px; border-radius: 999px;
+      background: linear-gradient(to right, #3b82f6 0%, #8b5cf6 40%, #f59e0b 72%, #ef4444 100%);
+    }
     .buttons { display: flex; gap: 10px; }
     button {
       flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
@@ -54,8 +74,8 @@
     <div>
       <h1>Paracetamol — Interactive MD</h1>
       <div class="sub">
-        A diffusion-transformer mean-flow model integrates the dynamics entirely
-        in your browser — no server GPU. Drag the timestep slider while it runs.
+        Simulating a trained Hamiltonian Flow Map for Paracetamol. 
+        Drag the timestep slider or the thermostat temperature to change the simulation while it is running.
       </div>
     </div>
 
@@ -66,7 +86,7 @@
 
     <div class="control">
       <label>Integration timestep <b id="dtVal">5.0 fs</b></label>
-      <input type="range" id="dt" min="0.5" max="18" step="0.5" value="5" />
+      <input type="range" id="dt" min="0.5" max="15" step="0.5" value="5" />
     </div>
 
     <div class="control">
@@ -77,7 +97,7 @@
     <hr />
 
     <div class="rama">
-      <div class="rama-title">Ramachandran (φ–ψ) <span class="muted">live</span></div>
+      <div class="rama-title">Ramachandran (<i style="font-family:Georgia,'Times New Roman',serif">φ–ψ</i>) <span class="muted">live</span></div>
       <div class="rama-canvas">
         <canvas id="ramaCloud" width="260" height="260"></canvas>
         <canvas id="ramaDot" width="260" height="260"></canvas>

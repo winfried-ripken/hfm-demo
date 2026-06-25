@@ -41,6 +41,9 @@ export function createRamachandran(cloudCanvas, dotCanvas) {
     ctxC.textAlign = "right";
     for (const a of [-180, 0, 180]) ctxC.fillText(a, x0 - 3, mapy(a) + 3);
     ctxC.textAlign = "center";
+    // Render the angle symbols in italic serif so they match the LaTeX math
+    // look (\varphi / \psi) rather than the upright sans-serif tick labels.
+    ctxC.font = "italic 12px Georgia, 'Times New Roman', serif";
     ctxC.fillText("φ", x0 + plotW / 2, H - 1);
     ctxC.save();
     ctxC.translate(7, y0 + plotH / 2);

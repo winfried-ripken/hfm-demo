@@ -69,10 +69,22 @@ const STYLE = {
   sphere: { scale: 0.28 },
 };
 
+// Translate coordinates so the molecule's centroid sits at the origin, which is
+// where the camera is aimed. This keeps the molecule centered in view even as
+// its center of mass drifts during the simulation. Purely a render-time
+// transform — the physics state in `state.x` is untouched.
+function centerCoords(x) {
+  const c = [0, 0, 0];
+  for (let i = 0; i < x.length; i++)
+    for (let d = 0; d < 3; d++) c[d] += x[i][d];
+  for (let d = 0; d < 3; d++) c[d] /= x.length;
+  return x.map((r) => [r[0] - c[0], r[1] - c[1], r[2] - c[2]]);
+}
+
 function renderMolecule(x) {
   viewer.removeAllModels();
   glModel = viewer.addModel();
-  glModel.addAtoms(atomList(x));
+  glModel.addAtoms(atomList(centerCoords(x)));
   viewer.setStyle({}, STYLE);
   viewer.render();
 }
@@ -102,11 +114,36 @@ function updateReadouts() {
   els.curTemp.textContent = `${T.toFixed(0)} K`;
 }
 
+// Color stops matching the temperature slider's cool→hot gradient (index.html).
+const TEMP_STOPS = [
+  [0.0, [0x3b, 0x82, 0xf6]],
+  [0.4, [0x8b, 0x5c, 0xf6]],
+  [0.72, [0xf5, 0x9e, 0x0b]],
+  [1.0, [0xef, 0x44, 0x44]],
+];
+
+// Map a temperature to its color on the gradient (same stops as the slider).
+function tempColor(T_K) {
+  const lo = parseFloat(els.temp.min), hi = parseFloat(els.temp.max);
+  const t = Math.min(1, Math.max(0, (T_K - lo) / (hi - lo)));
+  for (let i = 1; i < TEMP_STOPS.length; i++) {
+    const [p0, c0] = TEMP_STOPS[i - 1];
+    const [p1, c1] = TEMP_STOPS[i];
+    if (t <= p1) {
+      const f = (t - p0) / (p1 - p0);
+      const c = c0.map((v, k) => Math.round(v + (c1[k] - v) * f));
+      return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+    }
+  }
+  return `rgb(${TEMP_STOPS[3][1].join(", ")})`;
+}
+
 function syncParams() {
   params.dtFs = parseFloat(els.dt.value);
   params.temperatureK = parseFloat(els.temp.value);
   els.dtVal.textContent = `${params.dtFs.toFixed(1)} fs`;
   els.tempVal.textContent = `${params.temperatureK.toFixed(0)} K`;
+  els.tempVal.style.color = tempColor(params.temperatureK);
 }
 
 async function loop() {
