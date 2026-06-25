@@ -25,6 +25,8 @@ const els = {
   stepCount: document.getElementById("stepCount"),
   curTemp: document.getElementById("curTemp"),
   sps: document.getElementById("sps"),
+  viewerEl: document.getElementById("viewer"),
+  tempSpark: document.getElementById("tempSpark"),
 };
 
 let init = null; // init geometry json
@@ -101,6 +103,8 @@ function resetState() {
   state = { x: x0, p };
   stepIdx = 0;
   spsWindow = [];
+  tempHist.length = 0;
+  smoothT = null;
   els.stepCount.textContent = "0";
   rama.reset();
   const { phi, psi } = currentPhiPsi(state.x);
@@ -111,7 +115,12 @@ function resetState() {
 
 function updateReadouts() {
   const T = getTemperature(state.p, init.masses, false, false);
+  smoothT = smoothT == null ? T : smoothT + TEMP_SMOOTH * (T - smoothT);
   els.curTemp.textContent = `${T.toFixed(0)} K`;
+  els.curTemp.style.color = tempColor(smoothT);
+  tempHist.push(T);
+  if (tempHist.length > TEMP_HIST_MAX) tempHist.shift();
+  drawSpark();
 }
 
 // Color stops matching the temperature slider's cool→hot gradient (index.html).
@@ -122,8 +131,8 @@ const TEMP_STOPS = [
   [1.0, [0xef, 0x44, 0x44]],
 ];
 
-// Map a temperature to its color on the gradient (same stops as the slider).
-function tempColor(T_K) {
+// Map a temperature to its [r,g,b] on the gradient (same stops as the slider).
+function tempRgb(T_K) {
   const lo = parseFloat(els.temp.min), hi = parseFloat(els.temp.max);
   const t = Math.min(1, Math.max(0, (T_K - lo) / (hi - lo)));
   for (let i = 1; i < TEMP_STOPS.length; i++) {
@@ -131,11 +140,53 @@ function tempColor(T_K) {
     const [p1, c1] = TEMP_STOPS[i];
     if (t <= p1) {
       const f = (t - p0) / (p1 - p0);
-      const c = c0.map((v, k) => Math.round(v + (c1[k] - v) * f));
-      return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+      return c0.map((v, k) => Math.round(v + (c1[k] - v) * f));
     }
   }
-  return `rgb(${TEMP_STOPS[3][1].join(", ")})`;
+  return TEMP_STOPS[3][1];
+}
+const tempColor = (T_K) => `rgb(${tempRgb(T_K).join(", ")})`;
+const tempColorA = (T_K, a) => `rgba(${tempRgb(T_K).join(", ")}, ${a})`;
+
+// Drive the temperature-themed visuals: the glow behind the (centered) molecule
+// and the slider thumb's halo. Tied to the thermostat setpoint so it reads as a
+// calm, intentional "this is how hot we're running" cue (the sparkline below
+// carries the live fluctuation instead).
+function updateHeatVisuals(T_K) {
+  els.viewerEl.style.background =
+    `radial-gradient(circle at 50% 47%, ${tempColorA(T_K, 0.14)} 0%,` +
+    ` rgba(16,20,28,0) 46%), #0e121b`;
+  els.temp.style.setProperty("--heat", tempColor(T_K));
+}
+
+// Live instantaneous-temperature sparkline (auto-scaled to recent range).
+const tempHist = [];
+const TEMP_HIST_MAX = 160;
+// Exponentially-smoothed temperature, used only for color (the displayed number
+// and the plotted trace stay instantaneous). Smoothing the color removes the
+// step-to-step flicker that raw instantaneous temperature produces.
+let smoothT = null;
+const TEMP_SMOOTH = 0.08; // smaller = calmer color
+function drawSpark() {
+  const cv = els.tempSpark, ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, pad = 3;
+  ctx.clearRect(0, 0, W, H);
+  if (tempHist.length < 2) return;
+  let lo = Math.min(...tempHist), hi = Math.max(...tempHist);
+  if (hi - lo < 1) { lo -= 1; hi += 1; }
+  const span = hi - lo;
+  const n = tempHist.length;
+  const xOf = (i) => (i / (n - 1)) * W;
+  const yOf = (T) => H - pad - ((T - lo) / span) * (H - 2 * pad);
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = xOf(i), y = yOf(tempHist[i]);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = tempColor(smoothT ?? tempHist[n - 1]);
+  ctx.stroke();
 }
 
 function syncParams() {
@@ -144,6 +195,7 @@ function syncParams() {
   els.dtVal.textContent = `${params.dtFs.toFixed(1)} fs`;
   els.tempVal.textContent = `${params.temperatureK.toFixed(0)} K`;
   els.tempVal.style.color = tempColor(params.temperatureK);
+  updateHeatVisuals(params.temperatureK);
 }
 
 async function loop() {
@@ -200,10 +252,12 @@ async function boot() {
     document.getElementById("ramaDot")
   );
 
-  // viewer
+  // viewer — transparent canvas so the temperature glow on #viewer shows through
+  // behind the molecule.
   viewer = window.$3Dmol.createViewer(document.getElementById("viewer"), {
     backgroundColor: "0x10141c",
   });
+  viewer.setBackgroundColor(0x10141c, 0);
 
   els.dt.value = params.dtFs;
   els.temp.value = params.temperatureK;
