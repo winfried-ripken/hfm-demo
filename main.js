@@ -27,6 +27,7 @@ const els = {
   sps: document.getElementById("sps"),
   viewerEl: document.getElementById("viewer"),
   tempSpark: document.getElementById("tempSpark"),
+  panelToggle: document.getElementById("panelToggle"),
 };
 
 let init = null; // init geometry json
@@ -283,6 +284,11 @@ async function boot() {
     syncParams();
     resetState();
     if (wasRunning) setRunning(true);
+  });
+  els.panelToggle.addEventListener("click", () => {
+    const collapsed = document.body.classList.toggle("panel-collapsed");
+    els.panelToggle.textContent = collapsed ? "⟨" : "⟩";
+    els.panelToggle.title = collapsed ? "Show panel" : "Collapse panel";
   });
 }
 
